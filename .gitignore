@@ -1,0 +1,11 @@
+# Dado real não entra no git. Barra inicial de propósito: sem ela o padrão
+# casa com `src/data/` e engole a camada de dados (aconteceu no sinan).
+/data/
+*.csv
+
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/

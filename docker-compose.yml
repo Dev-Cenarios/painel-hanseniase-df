@@ -1,0 +1,27 @@
+# Deploy: `docker compose up -d --build`. Sempre com --build: o código e o
+# cenarios-core estão dentro da imagem.
+#
+# PORTA e BASE_URL_PATH vêm do `.env` (copie de `.env.exemplo`). Sem `.env`
+# o compose **recusa subir**, de propósito: com um padrão, ele subiria na
+# porta de outro painel — foi o que derrubou o DFTB por minutos em
+# 14/out/2026, quando o container antigo tinha sido criado à mão com a porta
+# no comando e não havia `.env`.
+services:
+  painel:
+    build: .
+    image: dashboard-hansedf:latest
+    container_name: dashboard-hansedf
+    restart: unless-stopped
+    ports:
+      - "${PORTA:?defina PORTA no .env (copie de .env.exemplo)}:8501"
+    environment:
+      - BASE_URL_PATH=${BASE_URL_PATH?defina BASE_URL_PATH no .env (vazio = raiz)}
+      - SINAN_DOENCA=${SINAN_DOENCA:-hanseniase}
+    # os parquets dos scripts/ (fora do git e da imagem)
+    volumes:
+      - ./data:/app/data:ro
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1.5G

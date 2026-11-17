@@ -1,0 +1,16 @@
+# Tema do hansepe (a casca da família de TB e hanseníase), só a parte clara:
+# por decisão de 17/out/2026 o painel abre claro mesmo com o
+# sistema em modo escuro — por isso não há [theme.dark].
+[theme]
+base = "light"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F5F6F8"
+textColor = "#0B1220"
+primaryColor = "#C1440A"
+
+[server]
+headless = true
+
+[client]
+# Sem o botão "Deploy" nem o menu de desenvolvedor na tela pública.
+toolbarMode = "minimal"

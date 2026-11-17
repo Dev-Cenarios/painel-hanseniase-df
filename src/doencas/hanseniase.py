@@ -1,0 +1,601 @@
+"""Pack da hanseníase — Distrito Federal.
+
+Cópia do pack do hansepe (mesmos nomes de métrica, cores, réguas e textos do
+boletim), para os dois painéis serem a mesma tela. O que muda é o que é do DF:
+as descrições (o boletim da SES-DF conta cura e abandono por coorte) e as
+métricas do mapa, que por enquanto só têm RA no boletim.
+"""
+
+from __future__ import annotations
+
+from ..theme import cores
+
+DOENCA = "HANSENIASE"
+TITULO = "Hanseníase"
+
+#: Cor por **métrica**, não por doença — a decisão 6 da família. O cromo
+#: institucional é o azul do RecifeTB; a semântica (detecção ocre, cura verde)
+#: é a mesma dos outros painéis, para o leitor não reaprender a legenda.
+CORES = {
+    "primary": "#12346B",
+    "secondary": "#1E73BE",
+    "casos": "#C1440A",
+    "cura": "#16A34A",
+    "cura_pct": "#16A34A",
+    "pop": "#6B7280",
+    "incid": "#92400E",
+    "casos_0_14": "#B45309",
+    "taxa_det_0_14": "#B45309",
+    # Roxos do painel de origem, para as duas proporções clínicas.
+    "prop_mb_pct": "#6D28D9",
+    "prop_grau2_pct": "#7C3AED",
+    # Indicadores de qualidade do programa: cura verde e abandono ocre são a
+    # semântica da família; contatos e GIF avaliado medem **cobertura**, e
+    # ganham o azul-petróleo que nenhuma métrica de dano usa.
+    "abandono_pct": "#B45309",
+    "contatos_pct": "#0E7490",
+    "gif_avaliado_pct": "#0369A1",
+    # Forma clínica é achado clínico, como MB e grau II: entra no roxo da
+    # família, num tom próprio para não se confundir com nenhum dos dois.
+    "casos_forma": "#5B21B6",
+}
+
+ROTULOS = {
+    "casos": "Casos novos",
+    "cura": "Curas",
+    "pop": "População",
+    "incid": "Taxa de detecção (por 100 mil hab.)",
+    "casos_0_14": "Casos novos de 0 a 14 anos",
+    "taxa_det_0_14": "Taxa de detecção 0–14 (por 100 mil hab.)",
+    # Nomes como o painel de origem escreve nos cards.
+    "prop_mb_pct": "Proporção multibacilar (MB)",
+    "prop_grau2_pct": "Proporção grau II (diagnóstico)",
+    # Nomes como o boletim de hanseníase escreve.
+    "cura_pct": "Proporção de cura",
+    "abandono_pct": "Proporção de abandono",
+    "contatos_pct": "Proporção de contatos examinados",
+    "gif_avaliado_pct": "Proporção de GIF avaliado no diagnóstico",
+    "casos_forma": "Casos por forma clínica",
+}
+
+#: Os quadros de parâmetros do boletim, **palavra por palavra**, para irem
+#: ao lado do gráfico como lá. Título e linhas na ordem em que o boletim
+#: escreve — do mais grave para o menos, o contrário da legenda do mapa.
+#:
+#: Copiar o texto em vez de gerá-lo a partir de `CORTES_FIXOS` é deliberado:
+#: é citação de documento. O teste de paridade confere que os dois dizem a
+#: mesma coisa, então divergir exige mexer nos dois lugares.
+TEXTO_PARAMETROS: dict[str, tuple[str, tuple[str, ...]]] = {
+    "incid": (
+        "Coeficiente de detecção geral",
+        (
+            "Hiperendêmico: >40,0/100 mil hab.",
+            "Muito alto: 20,00 a 39,99/100 mil hab.",
+            "Alto: 10,00 a 19,99/100 mil hab.",
+            "Médio: 2,00 a 9,99/100 mil hab.",
+            "Baixo: < 2,00/100 mil hab.",
+        ),
+    ),
+    "taxa_det_0_14": (
+        "Coeficiente de detecção <15 anos",
+        (
+            "Hiperendêmico: ≥10,00 por 100 mil hab.",
+            "Muito alto: 5,00 a 9,99 por 100 mil hab.",
+            "Alto: 2,50 a 4,99 por 100 mil hab.",
+            "Médio: 0,50 a 2,49 por 100 mil hab.",
+            "Baixo: < 0,50 por 100 mil hab.",
+        ),
+    ),
+    "prop_grau2_pct": (
+        "% GIF II",
+        ("Baixo < 5%", "Médio 5 a 9,99%", "Alto ≥ 10%"),
+    ),
+    "cura_pct": (
+        "% Cura",
+        ("Bom ≥ 90%", "Regular 75 a 89,9%", "Precário < 75%"),
+    ),
+    "abandono_pct": (
+        "% Abandono",
+        ("Bom < 10 %", "Regular =10-25%", "Precário > 25%"),
+    ),
+    "contatos_pct": (
+        "% Contatos examinados",
+        ("Bom ≥ 90%", "Regular 75 a 89,9%", "Precário < 75%"),
+    ),
+    "gif_avaliado_pct": (
+        "% Grau de incapacidade",
+        ("Bom ≥ 90%", "Regular 75 a 89,9%", "Precário < 75%"),
+    ),
+}
+
+
+def texto_parametros(metrica: str) -> tuple[str, tuple[str, ...]] | None:
+    """(título, linhas) do quadro do boletim, ou ``None`` quando não há."""
+    return TEXTO_PARAMETROS.get(metrica)
+
+
+#: Os quatro indicadores de qualidade do programa, na ordem da Tabela 2 do
+#: boletim. Não entram na faixa de KPIs nem no mapa: têm seção própria.
+INDICADORES_QUALIDADE = (
+    "cura_pct",
+    "contatos_pct",
+    "gif_avaliado_pct",
+    "abandono_pct",
+)
+
+#: Os cinco cards clicáveis do painel de origem, na ordem de lá, e as duas
+#: proporções que lá são cards fixos.
+LAYOUT_KPI = (
+    "incid",
+    "taxa_det_0_14",
+    "casos",
+    "casos_0_14",
+    "cura",
+    "prop_mb_pct",
+    "prop_grau2_pct",
+)
+
+#: Fração exibida sob o valor do card, saída da mesma conta que o percentual.
+FRACAO_KPI = {
+    "prop_mb_pct": ("multibacilares", "classificados"),
+    "prop_grau2_pct": ("grau2", "avaliacao_base"),
+    "cura_pct": ("cura_encerrada", "encerramentos"),
+    "abandono_pct": ("abandonos", "saidas"),
+    "contatos_pct": ("contatos_examinados", "contatos_registrados"),
+    "gif_avaliado_pct": ("gif_avaliados", "gif_base"),
+}
+
+#: O que o mapa por RA pinta. Só detecção e casos novos: é o que a Tabela 1
+#: do boletim traz por RA. Com o SINAN georreferenciado entram as outras do
+#: hansepe ("taxa_det_0_14", "casos_0_14", "cura", "casos_forma").
+METRICAS_MAPA = ("incid", "casos")
+
+#: A métrica que pinta o mapa por forma clínica, com a forma escolhida à
+#: parte. Pedido da equipe parceira: ver onde cada tipo de hanseníase se
+#: concentra.
+#:
+#: É métrica própria, e não um filtro geral, porque a forma clínica **só
+#: cruza com território**. As 23 variáveis da tabela agregada são tabuladas
+#: cada uma sozinha: não há detecção por forma, nem cura por forma, nem forma
+#: entre os casos novos. Um filtro ao lado dos controles pareceria recortar o
+#: painel inteiro e recortaria quase nada — foi exatamente o defeito que a
+#: equipe apontou no botão de endemicidade, que prometia valer para todas as
+#: métricas.
+#:
+#: Sendo métrica, o seletor das formas só aparece quando ela é escolhida, e o
+#: que ela promete é o que entrega.
+METRICA_FORMA = "casos_forma"
+
+#: As cinco formas, na ordem do dicionário do SINAN. O rótulo sai de
+#: `ROTULOS_VALORES`, que já é a fonte usada no gráfico de composição — duas
+#: listas do mesmo dicionário divergiriam.
+FORMAS_CLINICAS = ("1", "2", "3", "4", "5")
+
+
+def rotulo_forma(codigo: str) -> str:
+    return ROTULOS_VALORES["FORMACLINI"].get(str(codigo), str(codigo))
+
+#: Métricas em que uma queda é boa.
+#:
+#: `prop_mb_pct` entrou na revisão de outubro, a pedido da equipe parceira.
+#: Multibacilar e grau II medem a mesma coisa — gravidade no momento do
+#: diagnóstico, que é o que denuncia diagnóstico tardio —, e só o grau II
+#: estava aqui. A proporção de MB caindo aparecia em ocre, como se fosse
+#: piora.
+BOM_SE_CAI = frozenset(
+    {"casos", "incid",
+     "casos_0_14", "taxa_det_0_14", "prop_mb_pct", "prop_grau2_pct",
+     "abandono_pct"}
+)
+
+#: Métricas exibidas com casas decimais.
+TAXAS = frozenset(
+    {"incid", "taxa_det_0_14",
+     "cura_pct", "prop_mb_pct", "prop_grau2_pct",
+     "abandono_pct", "contatos_pct", "gif_avaliado_pct"}
+)
+
+#: O par de cores do boletim estadual: roxo para a série principal, laranja
+#: para a segunda (a linha do coeficiente nos Gráficos 1 e 2, o %GIF Cura no
+#: 11, o abandono no 13). Lidas do PDF do boletim.
+#:
+#: Vale só para os gráficos que reproduzem os do boletim. O resto do painel
+#: segue a identidade do Cenários — misturar as duas paletas na mesma tela é
+#: que faria a página parecer remendo.
+COR_BOLETIM = "#5B4B8A"
+COR_BOLETIM_SECUNDARIA = "#E8701A"
+
+#: Rampa roxa do painel de origem, para as taxas de detecção.
+#:
+#: O primeiro tom era ``#EDE9FE``, quase branco: no tema claro os municípios
+#: de classe "Baixo" sumiam no fundo da página e o mapa parecia furado.
+#: A rampa foi levantada para começar num lilás que se lê
+#: sobre branco, mantendo a progressão até o roxo quase preto do topo.
+_ROXOS = (
+    "#DCD3FA", "#C7B8F7", "#AE99F2", "#9173E8",
+    "#7A56DA", "#5B34B4", "#3B1E7A",
+)
+
+PALETA_MAPA = {
+    "incid": _ROXOS,
+    "taxa_det_0_14": _ROXOS,
+    "casos": (
+        "#F5A878", "#EF8450", "#E56028", "#D04010",
+        "#B82E08", "#921800", "#5E0C00",
+    ),
+    "casos_forma": _ROXOS,
+}
+
+
+def cor(metrica: str) -> str:
+    return CORES.get(metrica, CORES["secondary"])
+
+
+ROTULOS_CURTOS = {
+    # A unidade fica na legenda do mapa e no título do card completo; aqui é
+    # botão, e cinco botões precisam caber numa linha.
+    "incid": "Detecção",
+    "taxa_det_0_14": "Detecção 0–14",
+    "casos": "Casos novos",
+    "casos_0_14": "Casos 0–14",
+    "cura": "Curas",
+    "prop_mb_pct": "Multibacilar",
+    "prop_grau2_pct": "Grau II",
+    "cura_pct": "Cura",
+    "abandono_pct": "Abandono",
+    "contatos_pct": "Contatos examinados",
+    "casos_forma": "Forma clínica",
+    "gif_avaliado_pct": "GIF avaliado",
+}
+
+
+def rotulo(metrica: str) -> str:
+    return ROTULOS.get(metrica, metrica)
+
+
+def rotulo_curto(metrica: str) -> str:
+    return ROTULOS_CURTOS.get(metrica, rotulo(metrica))
+
+
+#: Título do card de KPI, entre o nome curto do botão e o nome completo.
+#:
+#: "Detecção" basta num botão, onde o contexto é a lista de métricas, mas no
+#: card ele compete com "Casos novos" ao lado e a leitura fica ambígua: os
+#: dois falam de detecção, só que um é taxa e o outro é contagem. Pedido da
+#: equipe parceira na revisão de outubro.
+ROTULOS_CARD = {
+    "incid": "Taxa de detecção",
+    "taxa_det_0_14": "Taxa de detecção 0–14",
+}
+
+
+def rotulo_card(metrica: str) -> str:
+    return ROTULOS_CARD.get(metrica, rotulo_curto(metrica))
+
+
+#: Nome na legenda do mapa. As métricas de contagem ganham "Número de" para
+#: não serem lidas como indicador: no mapa, "Casos novos" ao lado de uma
+#: escala de cores parecia uma taxa. Pedido da mesma revisão.
+ROTULOS_MAPA = {
+    "casos": "Número de casos novos",
+    "casos_0_14": "Número de casos de 0 a 14 anos",
+    "cura": "Número de curas",
+}
+
+
+def rotulo_mapa(metrica: str) -> str:
+    return ROTULOS_MAPA.get(metrica, rotulo(metrica))
+
+
+def rampa_mapa(metrica: str) -> list[str]:
+    explicita = PALETA_MAPA.get(metrica)
+    return list(explicita) if explicita else cores.rampa(cor(metrica))
+
+
+#: Cortes da **escala fixa** do mapa — os parâmetros oficiais de endemicidade
+#: do Ministério da Saúde, por município. É a régua que não muda de ano para
+#: ano, e a que o painel de origem não tem.
+CORTES_FIXOS = {
+    # Baixo < 2,00 · Médio 2,00–9,99 · Alto 10,00–19,99 ·
+    # Muito alto 20,00–39,99 · Hiperendêmico > 40,00 (Gráfico 1 do boletim)
+    "incid": (0, 2, 10, 20, 40),
+    # Baixo < 0,50 · Médio 0,50–2,49 · Alto 2,50–4,99 ·
+    # Muito alto 5,00–9,99 · Hiperendêmico ≥ 10,00 (Gráfico 2)
+    "taxa_det_0_14": (0, 0.5, 2.5, 5, 10),
+    # Baixo < 5% · Médio 5–9,99% · Alto ≥ 10% (Gráfico 12)
+    "prop_grau2_pct": (0, 5, 10),
+    # Precário < 75% · Regular 75–89,9% · Bom ≥ 90% (Gráficos 10, 11 e 13)
+    "cura_pct": (0, 75, 90, 100),
+    "contatos_pct": (0, 75, 90, 100),
+    "gif_avaliado_pct": (0, 75, 90, 100),
+    # Bom < 10% · Regular 10–25% · Precário > 25% (Gráfico 13)
+    "abandono_pct": (0, 10, 25, 100),
+    # Faixas de contagem, **não** régua do Ministério: endemicidade é conceito
+    # de taxa, e contagem bruta não tem classe oficial. Por isso não tem nomes
+    # em `NOMES_FIXOS`, e por isso `tem_regua_oficial` responde não. Fica aqui
+    # porque a repartição é útil na legenda e pode voltar sob outro nome, se a
+    # equipe parceira quiser.
+    "casos": (0, 5, 10, 25, 50, 100),
+}
+
+
+#: Com quantas casas decimais o boletim escreve os limites de cada régua.
+#:
+#: Não é a precisão do dado nem a dos cortes: é como o documento redige o
+#: limite superior de cada classe. As taxas de detecção vão a duas casas
+#: ("Médio 2,00 a 9,99"), os indicadores de qualidade a uma ("Regular 75 a
+#: 89,9%"). A legenda do mapa usa isto para reproduzir a citação — sem ele,
+#: a classe que vai de 2 até antes de 10 se escreveria "2 a 10" e o 10
+#: apareceria em duas faixas.
+CASAS_REGUA = {
+    "incid": 2,
+    "taxa_det_0_14": 2,
+    "prop_grau2_pct": 2,
+    "cura_pct": 1,
+    "contatos_pct": 1,
+    "gif_avaliado_pct": 1,
+    "abandono_pct": 1,
+}
+
+
+def casas_regua(metrica: str) -> int:
+    return CASAS_REGUA.get(metrica, 2)
+
+
+#: Nome de cada classe da escala fixa, na ordem dos cortes — é como o
+#: Ministério chama as faixas, e é o que a legenda mostra ao lado do número.
+#: No masculino, como o boletim escreve — a concordância é com
+#: "coeficiente", não com "taxa".
+NOMES_FIXOS = {
+    "incid": ("Baixo", "Médio", "Alto", "Muito alto", "Hiperendêmico"),
+    "taxa_det_0_14": ("Baixo", "Médio", "Alto", "Muito alto", "Hiperendêmico"),
+    "prop_grau2_pct": ("Baixo", "Médio", "Alto"),
+    "cura_pct": ("Precário", "Regular", "Bom"),
+    "contatos_pct": ("Precário", "Regular", "Bom"),
+    "gif_avaliado_pct": ("Precário", "Regular", "Bom"),
+    "abandono_pct": ("Bom", "Regular", "Precário"),
+}
+
+
+def cortes_fixos(metrica: str) -> tuple[float, ...] | None:
+    return CORTES_FIXOS.get(metrica)
+
+
+def tem_regua_oficial(metrica: str) -> bool:
+    """Se a métrica tem a régua do Ministério, com classes nomeadas.
+
+    Ter corte não basta: `casos` tem faixas de contagem, que repartem bem o
+    mapa mas não são endemicidade — endemicidade é conceito de taxa. O que
+    distingue uma régua oficial é ela **nomear** as classes: "Baixo",
+    "Médio", "Alto". Daí a conta ser sobre `NOMES_FIXOS`, e não sobre a
+    existência de cortes.
+
+    Quem pergunta é o seletor de cores: oferecer "Endemicidade" onde ela não
+    existe faz o mapa classificar de outro jeito com o botão aceso dizendo
+    que é a régua oficial. Foi o que a equipe parceira apontou na revisão de
+    outubro.
+    """
+    return bool(CORTES_FIXOS.get(metrica) and NOMES_FIXOS.get(metrica))
+
+
+def nomes_fixos(metrica: str) -> tuple[str, ...] | None:
+    return NOMES_FIXOS.get(metrica)
+
+
+def classe_de(metrica: str, valor: float | None) -> str | None:
+    """Em que classe do boletim o valor cai — "Alto", "Precário"…
+
+    ``None`` quando a métrica não tem régua oficial ou o valor não existe.
+    O último corte é o teto da escala e não delimita classe: um valor igual
+    ou acima do penúltimo já é a classe de cima.
+    """
+    cortes, nomes = CORTES_FIXOS.get(metrica), NOMES_FIXOS.get(metrica)
+    if valor is None or not cortes or not nomes:
+        return None
+    for i, nome in enumerate(nomes):
+        if i + 1 >= len(nomes) or float(valor) < cortes[i + 1]:
+            return nome
+    return nomes[-1]
+
+
+ICONES_KPI = {
+    "incid": '<path d="M12 14l3.5-5"/><path d="M4 18a8 8 0 1 1 16 0"/>',
+    "taxa_det_0_14": '<path d="M12 14l3.5-5"/><path d="M4 18a8 8 0 1 1 16 0"/>',
+    "casos": '<path d="M3 12h4l3-8 4 16 3-8h4"/>',
+    "casos_0_14": '<circle cx="9" cy="7" r="3"/><path d="M3 20a6 6 0 0 1 12 0"/><circle cx="17" cy="9" r="2"/><path d="M15 20a4 4 0 0 1 6-3"/>',
+    "cura": '<circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/>',
+    "prop_mb_pct": '<path d="M19 5L5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
+    "prop_grau2_pct": '<path d="M19 5L5 19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>',
+}
+
+
+def icone(metrica: str) -> str:
+    return ICONES_KPI.get(metrica, "")
+
+
+#: Rótulos que o ``sinan_dict`` da hanseníase não traz. Fonte: dicionário de
+#: dados da ficha de notificação/investigação de hanseníase do SINAN.
+ROTULOS_VALORES: dict[str, dict[str, str]] = {
+    "FORMACLINI": {
+        "1": "Indeterminada",
+        "2": "Tuberculoide",
+        "3": "Dimorfa",
+        "4": "Virchowiana",
+        "5": "Não classificada",
+    },
+    "EPIS_RACIO": {
+        "1": "Reação tipo 1",
+        "2": "Reação tipo 2",
+        "3": "Reação tipo 1 e 2",
+        "4": "Sem reação",
+    },
+}
+
+#: Variáveis numéricas da ficha: o valor **é** a quantidade (contatos, nervos,
+#: doses), não um código. O painel de composição as mostra como estão, em
+#: ordem numérica, sem procurar rótulo.
+VARIAVEIS_NUMERICAS = frozenset({"CONTEXAM", "CONTREG", "NERVOSAFET", "DOSE_RECEB"})
+
+#: Variáveis do SINAN oferecidas no painel de composição, agrupadas.
+#:
+#: ``CONTEXAM`` e ``CONTREG`` saíram daqui: o valor deles é a
+#: **quantidade** de contatos por caso, e a distribuição disso ("47 casos com
+#: 2 contatos examinados") não é indicador de nada. O que a vigilância cobra é
+#: a proporção de examinados entre registrados, que virou gráfico próprio, com
+#: a régua do MS ao lado, como o Gráfico 10 do boletim. Eles continuam em
+#: :data:`VARIAVEIS_NUMERICAS` porque `kpis` os soma de lá.
+#:
+#: O painel de origem mostra as 23 do ``sinan_landing`` sem curadoria. Ficam
+#: de fora, de propósito: ``NDUPLIC_N`` e ``IN_VINCULA`` (controle do
+#: sistema, 100% num valor), ``UFATUAL``/``UFRESAT`` (quase 100% PE),
+#: ``DTMUDESQ`` (uma barra por data) e ``CLASSATUAL``/``ESQ_ATU_N``/
+#: ``AVAL_ATU_N`` (situação atual, redundante com a do diagnóstico e pior
+#: preenchida — 804 contra 2.322 em 2024).
+VARIAVEIS: dict[str, dict[str, str]] = {
+    "Clínica e diagnóstico": {
+        "CLASSOPERA": "Classificação operacional no diagnóstico",
+        "FORMACLINI": "Forma clínica",
+        "AVALIA_N": "Grau de incapacidade no diagnóstico",
+        "BACILOSCOP": "Baciloscopia",
+        "NERVOSAFET": "Nº de nervos afetados",
+        "EPIS_RACIO": "Reação hansênica",
+    },
+    "Entrada e tratamento": {
+        "MODOENTR": "Modo de entrada",
+        "MODODETECT": "Modo de detecção do caso novo",
+        "ESQ_INI_N": "Esquema terapêutico inicial",
+        "DOSE_RECEB": "Nº de doses supervisionadas",
+        "TPALTA_N": "Tipo de saída",
+    },
+    "Perfil": {
+        "CS_RACA": "Raça/cor",
+        "CS_ESCOL_N": "Escolaridade",
+        "CS_GESTANT": "Gestante",
+    },
+}
+
+#: As que abrem de saída. A escolha deixou de ser nossa.
+#:
+#: São exatamente as cinco distribuições que o Boletim Epidemiológico
+#: publica, na ordem em que ele imprime: raça/cor (Gráfico 5), modo de
+#: detecção (6), escolaridade (7), classificação operacional (8) e forma
+#: clínica (9). Antes eram seis escolhidas por nós; agora o painel abre no
+#: que o estado publica, e o argumento na frente da equipe é o documento.
+#:
+#: As outras onze continuam no seletor para quem quiser.
+VARIAVEIS_DESTAQUE = (
+    "MODODETECT",
+    "CLASSOPERA",
+    "FORMACLINI",
+)
+
+#: Como cada tópico é desenhado, seguindo o boletim gráfico a gráfico.
+#:
+#: O Ministério não desenha toda distribuição igual. Poucas categorias de nome
+#: comprido saem em **barras deitadas** — "PAUCIBACILAR/MULTIBACILAR" no
+#: Gráfico 8, as cinco formas clínicas no 9. Muitas categorias saem em
+#: **colunas**, com o eixo preso em 0 a 100% e o valor escrito em cima:
+#: raça/cor (5), modo de detecção (6), escolaridade (7).
+#:
+#: Fora essas cinco, que o boletim publica, a regra abaixo decide: rótulo
+#: comprido não cabe embaixo de uma coluna.
+ORIENTACAO_TOPICO = {
+    "CS_RACA": "coluna",        # Gráfico 5
+    "MODODETECT": "coluna",     # Gráfico 6
+    "CS_ESCOL_N": "coluna",     # Gráfico 7
+    "CLASSOPERA": "barra",      # Gráfico 8
+    "FORMACLINI": "barra",      # Gráfico 9
+}
+
+#: Acima deste comprimento, o rótulo não cabe sob uma coluna e a variável vai
+#: para barras deitadas.
+LIMITE_ROTULO_EM_COLUNA = 22
+
+
+def orientacao_topico(variavel: str, categorias) -> str:
+    """``"coluna"`` ou ``"barra"`` para a distribuição desta variável."""
+    if variavel in ORIENTACAO_TOPICO:
+        return ORIENTACAO_TOPICO[variavel]
+    if variavel in VARIAVEIS_NUMERICAS:
+        return "coluna"
+    rotulos = [str(c) for c in categorias]
+    if not rotulos or len(rotulos) > 9:
+        return "barra"
+    return (
+        "coluna"
+        if max(len(r) for r in rotulos) <= LIMITE_ROTULO_EM_COLUNA
+        else "barra"
+    )
+
+
+def variaveis_planas() -> dict[str, str]:
+    return {c: r for grupo in VARIAVEIS.values() for c, r in grupo.items()}
+
+
+def grupo_da(codigo: str) -> str:
+    for grupo, itens in VARIAVEIS.items():
+        if codigo in itens:
+            return grupo
+    return "Outras"
+
+
+#: Explicação de cada KPI, mostrada ao passar o cursor. O que se explica é o
+#: **denominador** — e onde a conta difere da do Ministério.
+DESCRICOES = {
+    "incid": (
+        "Casos novos por 100 mil habitantes residentes no DF, pelo ano do "
+        "diagnóstico e sem os encerrados por erro diagnóstico — como o boletim "
+        "da SES-DF. População do IPEDF, a mesma do boletim."
+    ),
+    "taxa_det_0_14": (
+        "Casos novos em menores de 15 anos por 100 mil habitantes dessa faixa. "
+        "É o indicador de transmissão recente."
+    ),
+    "casos": (
+        "Casos novos (modo de entrada 'caso novo') no ano do diagnóstico, "
+        "residentes no DF. Recidivas, transferências, reingressos e erro "
+        "diagnóstico não contam."
+    ),
+    "casos_0_14": "Casos novos em menores de 15 anos no ano do diagnóstico.",
+    "cura": (
+        "Curas na coorte do ano: paucibacilares diagnosticados no ano anterior "
+        "e multibacilares dois anos antes, como o boletim."
+    ),
+    "prop_mb_pct": (
+        "Multibacilares sobre os casos novos com classificação operacional "
+        "preenchida (PB + MB)."
+    ),
+    "prop_grau2_pct": (
+        "Casos novos com grau 2 de incapacidade sobre os avaliados (grau 0, 1 "
+        "e 2), a regra do Ministério. Só vale com o GIF avaliado em 75% ou mais "
+        "dos casos; abaixo disso fica em branco."
+    ),
+    "pop": "População estimada (IPEDF, como no boletim).",
+    "cura_pct": (
+        "Curas sobre a coorte do ano — PB diagnosticados no ano anterior e MB "
+        "dois anos antes, sem as transferências. Parâmetros: Bom ≥ 90%, "
+        "Regular 75–89,9%, Precário < 75%."
+    ),
+    "abandono_pct": (
+        "Abandonos sobre a mesma coorte da cura. Parâmetros: Bom < 10%, "
+        "Regular 10–25%, Precário > 25%."
+    ),
+    "contatos_pct": (
+        "Contatos examinados sobre contatos registrados dos casos novos da "
+        "coorte. Parâmetros: Bom ≥ 90%, Regular 75–89,9%, Precário < 75%."
+    ),
+    "gif_avaliado_pct": (
+        "Casos novos com grau de incapacidade física avaliado no diagnóstico "
+        "(grau 0, I ou II) sobre o total. Mede **cobertura da avaliação**, não "
+        "dano. Parâmetros: Bom ≥ 90%, Regular 75–89,9%, Precário < 75%."
+    ),
+}
+
+
+def descricao(metrica: str) -> str | None:
+    return DESCRICOES.get(metrica)
+
+
+#: Herança do contrato do hansepe; aqui os indicadores do programa estão em
+#: `INDICADORES_QUALIDADE`.
+INDICADORES_PROGRAMA = ()

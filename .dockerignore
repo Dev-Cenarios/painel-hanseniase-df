@@ -1,0 +1,18 @@
+# O que NÃO entra na imagem. vendor/ entra (o wheel do cenarios-core);
+# tests/test_contexto_docker.py confere.
+data/origem/
+**/*.csv
+.env
+.env.exemplo
+.venv/
+.git/
+.github/
+__pycache__/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+tests/
+scripts/
+docs/
+*.md

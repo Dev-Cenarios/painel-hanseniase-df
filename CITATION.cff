@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "Se usar este painel ou o seu código, cite-o como abaixo."
+type: software
+title: "Painel de Monitoramento da Hanseníase — Distrito Federal"
+abstract: "Painel de vigilância da hanseníase no Distrito Federal, por Região Administrativa e Região de Saúde, com os indicadores do boletim da SES-DF."
+authors:
+  - given-names: Matheus
+    family-names: Cardoso
+    affiliation: "Projeto Cenários+, Universidade de Brasília"
+repository-code: "https://github.com/Dev-Cenarios/painel-hanseniase-df"
+url: "https://painel.cenarios.unb.br/cenarios/hansedf/"
+license: MIT
+keywords:
+  - epidemiologia
+  - vigilância epidemiológica
+  - hanseníase
+  - Distrito Federal
+  - SINAN
